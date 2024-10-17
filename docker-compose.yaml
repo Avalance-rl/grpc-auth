@@ -1,0 +1,37 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-app
+    environment:
+      - CONFIG_PATH=./config/local.yaml
+    depends_on:
+      - postgres
+    networks:
+      - mynetwork
+    ports:
+      - "44044:44044"
+    volumes:
+      - ./config:/app/config
+
+  postgres:
+    image: postgres:latest
+    container_name: my-postgres-db
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+volumes:
+  postgres-data:
+
+networks:
+  mynetwork:
