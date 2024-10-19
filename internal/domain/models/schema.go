@@ -40,7 +40,7 @@ BEFORE INSERT ON devices
 FOR EACH ROW
 EXECUTE FUNCTION check_email_limit();
 
-DELETE FROM devices WHERE expiry_time < CURRENT_TIMESTAMP;
+-- DELETE FROM devices WHERE expiry_time < CURRENT_TIMESTAMP;
 -- deletes once a day
-SELECT cron.schedule('0 0 * * *', 'DELETE FROM devices WHERE expiry_time < CURRENT_TIMESTAMP');
+-- SELECT cron.schedule('0 0 * * *', 'DELETE FROM devices WHERE expiry_time < CURRENT_TIMESTAMP');
 `
