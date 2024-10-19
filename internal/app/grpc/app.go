@@ -6,7 +6,6 @@ import (
 	authgrpc "vieo/auth/internal/grpc/auth"
 	"vieo/auth/internal/lib/logger"
 
-	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -50,9 +49,7 @@ func (a *App) Start() error {
 	if err := a.gRPCServer.Serve(l); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-
 	return nil
-
 }
 
 func (a *App) Stop() {
