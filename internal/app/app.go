@@ -6,8 +6,6 @@ import (
 	"vieo/auth/internal/lib/logger"
 	"vieo/auth/internal/services/auth"
 	postgre "vieo/auth/internal/storage/postgres"
-
-	_ "github.com/lib/pq"
 )
 
 type App struct {

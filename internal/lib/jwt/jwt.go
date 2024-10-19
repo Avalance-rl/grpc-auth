@@ -7,12 +7,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const (
-	refreshLife = 3600
-)
-
-// TODO: не забыть переделать секрет токена, покрыть функцию тестами
-
 func NewToken(
 	user models.User,
 	duration time.Duration,
