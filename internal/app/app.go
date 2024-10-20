@@ -24,7 +24,7 @@ func New(
 	if err != nil {
 		panic(err)
 	}
-	authService := auth.New(log, storage, storage, storage, tokenTTL, secretKey)
+	authService := auth.New(log, storage, storage, storage, storage, tokenTTL, secretKey)
 
 	grpcApp := grpcapp.New(log, authService, grpcPort)
 
