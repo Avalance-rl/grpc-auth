@@ -88,7 +88,8 @@ func (s *Storage) SaveDevice(
 		if errors.As(err, &pqErr) {
 			switch pqErr.Code {
 			case "23505":
-				return fmt.Errorf("%s: device already registered for this email: %w", op, storage.ErrDeviceAlreadyExists)
+				// the user logged in from another browser, the access token is not there, we just generate a new one for him
+				return nil
 			case "23503":
 				return fmt.Errorf("%s: user not found for email: %w", op, storage.ErrUserNotFound)
 			case "P0001":
@@ -110,5 +111,20 @@ func (s *Storage) Device(
 	device string,
 ) error {
 	const op = "storage.postgres.Device"
-	panic("implement me")
+
+	var exists bool
+	err := s.db.QueryRowContext(ctx,
+		"SELECT EXISTS (SELECT 1 FROM devices WHERE email = $1 AND device_name = $2)",
+		email,
+		device,
+	).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("%s: failed to execute query: %w", op, err)
+	}
+
+	if !exists {
+		return fmt.Errorf("%s: %w", op, storage.ErrDeviceNotFound)
+	}
+
+	return nil
 }

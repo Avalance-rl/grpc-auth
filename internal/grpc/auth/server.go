@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"vieo/auth/internal/lib/jwt"
 	"vieo/auth/internal/services/auth"
 	"vieo/auth/internal/storage"
 
@@ -29,6 +30,7 @@ type Auth interface {
 	RefreshToken(
 		ctx context.Context,
 		deviceAddress string,
+		accessToken string,
 	) (token string, err error)
 }
 
@@ -97,8 +99,37 @@ func (s *serverAPI) RefreshToken(
 	ctx context.Context,
 	req *desc.RefreshTokenRequest,
 ) (*desc.RefreshTokenResponse, error) {
+	if req.DeviceAddress == "=" || req.AccessToken == "" {
+		return nil, status.Error(codes.InvalidArgument, "device addres or access token is empty")
+	}
 
-	return &desc.RefreshTokenResponse{Token: ""}, nil
+	token, err := s.auth.RefreshToken(ctx, req.GetDeviceAddress(), req.GetAccessToken())
+	if err != nil {
+		if errors.Is(err, jwt.ErrInvalidToken) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, jwt.ErrIncorrectExpiration) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, jwt.ErrInvalidSignMethod) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, jwt.ErrFailedToExtractData) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, jwt.ErrIncorrectExpiration) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, storage.ErrDeviceNotFound) {
+			return nil, status.Error(codes.NotFound, "device not found")
+		}
+		if errors.Is(err, auth.ErrAddressMismatch) {
+			return nil, status.Error(codes.FailedPrecondition, "address mismatch")
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
+	}
+
+	return &desc.RefreshTokenResponse{Token: token}, nil
 }
 
 func isEmailValid(e string) bool {
