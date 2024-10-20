@@ -6,8 +6,6 @@ import (
 	"vieo/auth/internal/lib/logger"
 	"vieo/auth/internal/services/auth"
 	postgre "vieo/auth/internal/storage/postgres"
-
-	_ "github.com/lib/pq"
 )
 
 type App struct {
@@ -26,7 +24,7 @@ func New(
 	if err != nil {
 		panic(err)
 	}
-	authService := auth.New(log, storage, storage, storage, tokenTTL, secretKey)
+	authService := auth.New(log, storage, storage, storage, storage, tokenTTL, secretKey)
 
 	grpcApp := grpcapp.New(log, authService, grpcPort)
 

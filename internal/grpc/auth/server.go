@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"vieo/auth/internal/lib/jwt"
+	"vieo/auth/internal/services/auth"
+	"vieo/auth/internal/storage"
 
 	desc "github.com/Avalance-rl/contract-vieo/pkg/auth_v1"
-	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,6 +30,7 @@ type Auth interface {
 	RefreshToken(
 		ctx context.Context,
 		deviceAddress string,
+		accessToken string,
 	) (token string, err error)
 }
 
@@ -43,19 +45,31 @@ func Register(gRPC *grpc.Server, auth Auth) {
 	desc.RegisterAuthServer(gRPC, &serverAPI{auth: auth}) // регистрация обработчика
 }
 
-// TODO: дописать логику
-
 func (s *serverAPI) Login(
 	ctx context.Context,
 	req *desc.LoginRequest,
 ) (*desc.LoginResponse, error) {
-	// TODO: сделать валидацию поступающих данных нормальную, есть пакеты специальные
-	if !isEmailValid(req.Email) || !isPasswordValid(req.GetPassword()) {
+	if !isEmailValid(req.Email) || !isPasswordValid(req.GetPassword()) || req.GetDeviceAddress() == "" {
 		return nil, status.Error(codes.InvalidArgument, "not valid email or password")
 	}
-	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), req.DeviceAddress)
+	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), req.GetDeviceAddress())
 	if err != nil {
-		return nil, status.Error(codes.AlreadyExists, "user already exists")
+		if errors.Is(err, storage.ErrUserNotFound) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
+		if errors.Is(err, storage.ErrDeviceLimitExceeded) {
+			return nil, status.Error(codes.ResourceExhausted, "device limit exceeded")
+		}
+		if errors.Is(err, auth.ErrWrongPassword) {
+			return nil, status.Error(codes.Unauthenticated, "wrong password")
+		}
+		// in theory this case should not happen, because either the interceptor will intercept the user without an access token and
+		// throw it to the refresh line or front
+		if errors.Is(err, storage.ErrDeviceAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, "device already exists")
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
+
 	}
 	return &desc.LoginResponse{
 		Token: token,
@@ -71,13 +85,11 @@ func (s *serverAPI) Register(
 	}
 	uid, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.GetPassword())
 	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-			if pqErr.Code == "23505" {
-				return nil, status.Error(codes.AlreadyExists, "user already exists")
-			}
-		} // unique_violation
-		return nil, status.Error(codes.Internal, "failed to register user")
+		if errors.Is(err, storage.ErrUserAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, "user already exists")
+		}
+
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &desc.RegisterResponse{UserId: uid}, nil
@@ -87,8 +99,37 @@ func (s *serverAPI) RefreshToken(
 	ctx context.Context,
 	req *desc.RefreshTokenRequest,
 ) (*desc.RefreshTokenResponse, error) {
+	if req.DeviceAddress == "=" || req.AccessToken == "" {
+		return nil, status.Error(codes.InvalidArgument, "device addres or access token is empty")
+	}
 
-	return &desc.RefreshTokenResponse{Token: ""}, nil
+	token, err := s.auth.RefreshToken(ctx, req.GetDeviceAddress(), req.GetAccessToken())
+	if err != nil {
+		if errors.Is(err, jwt.ErrInvalidToken) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, jwt.ErrIncorrectExpiration) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, jwt.ErrInvalidSignMethod) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, jwt.ErrFailedToExtractData) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, jwt.ErrIncorrectExpiration) {
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+		if errors.Is(err, storage.ErrDeviceNotFound) {
+			return nil, status.Error(codes.NotFound, "device not found")
+		}
+		if errors.Is(err, auth.ErrAddressMismatch) {
+			return nil, status.Error(codes.FailedPrecondition, "address mismatch")
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
+	}
+
+	return &desc.RefreshTokenResponse{Token: token}, nil
 }
 
 func isEmailValid(e string) bool {
