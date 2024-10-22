@@ -16,16 +16,23 @@ type App struct {
 	log        *logger.Logger
 	gRPCServer *grpc.Server
 	port       int
+	secretKey  string
 }
 
-func New(log *logger.Logger, auth authgrpc.Auth, port int) *App {
-	gRPCServer := grpc.NewServer()
+func New(log *logger.Logger, auth authgrpc.Auth, port int, secretKey string) *App {
+
+	interceptor := authgrpc.NewAuthInterceptor(secretKey, log)
+
+	gRPCServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(interceptor.Logger(), interceptor.Authorize()),
+	)
 	authgrpc.Register(gRPCServer, auth)
 
 	return &App{
 		log:        log,
 		gRPCServer: gRPCServer,
 		port:       port,
+		secretKey:  secretKey,
 	}
 }
 
