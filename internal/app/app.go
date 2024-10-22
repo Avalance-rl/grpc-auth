@@ -25,8 +25,8 @@ func New(
 		panic(err)
 	}
 	authService := auth.New(log, storage, storage, storage, storage, tokenTTL, secretKey)
-
-	grpcApp := grpcapp.New(log, authService, grpcPort)
+	// secret key on two levels transport and service!
+	grpcApp := grpcapp.New(log, authService, grpcPort, secretKey)
 
 	return &App{
 		GRPCSrv: grpcApp,
