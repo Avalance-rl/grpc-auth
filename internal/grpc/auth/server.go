@@ -131,6 +131,13 @@ func (s *serverAPI) RefreshToken(
 
 	return &desc.RefreshTokenResponse{Token: token}, nil
 }
+func (s *serverAPI) CheckToken(
+	context.Context,
+	*desc.CheckTokenRequest,
+) (*desc.CheckTokenResponse, error) {
+
+	return &desc.CheckTokenResponse{Message: "OK"}, nil
+}
 
 func isEmailValid(e string) bool {
 	emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
