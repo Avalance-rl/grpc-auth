@@ -37,7 +37,7 @@ func (interceptor *AuthInterceptor) Authorize() grpc.UnaryServerInterceptor {
 	) (interface{}, error) {
 		protectedMethods := map[string]bool{
 			// here are the methods for which this interceptor is called
-			//"/auth_v1.Auth/RefreshToken": true,
+			"/auth_v1.Auth/CheckToken": true,
 		}
 		if protectedMethods[info.FullMethod] {
 			md, ok := metadata.FromIncomingContext(ctx)

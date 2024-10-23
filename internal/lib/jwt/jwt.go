@@ -24,12 +24,14 @@ func NewToken(
 	deviceAddress string,
 ) (string, error) {
 	jwtSecretKey := []byte(secretKey)
+	expirationTime := time.Now().Add(duration).Unix()
 	accessPayload := jwt.MapClaims{
 		"email":         user,
 		"deviceAddress": deviceAddress,
-		"exp":           duration, // interceptor will check access token's duration
+		"exp":           expirationTime, // interceptor will check access token's expiration time
 		"iat":           time.Now().Unix(),
 	}
+
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessPayload)
 	signedAccessToken, err := accessToken.SignedString(jwtSecretKey)
 	if err != nil {
@@ -70,7 +72,7 @@ func DecodeToken(
 			return "", "", ErrIncorrectExpiration
 		}
 
-		if time.Unix(int64(expiration), 0).Before(time.Now()) {
+		if time.Now().Unix() > int64(expiration) {
 			return "", "", ErrTokenExpiration
 		}
 
