@@ -14,6 +14,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+//go:generate mockery --case=underscore --all
+
 type Auth struct {
 	log            *logger.Logger
 	usrSaver       UserSaver
