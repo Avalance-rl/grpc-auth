@@ -8,3 +8,7 @@ type User struct {
 	PassHash         []byte    `db:"password"`
 	RegistrationTime time.Time `db:"registration_time"`
 }
+
+func (u User) ReceiveNotification(sprintf string) {
+	panic("implement me")
+}

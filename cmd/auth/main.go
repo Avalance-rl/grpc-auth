@@ -12,8 +12,7 @@ import (
 )
 
 func main() {
-	cfg := config.MustLoad()
-
+	cfg := config.GetConfig()
 	log := logger.NewLogger(cfg.Env)
 
 	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.GRPC.TokenTTL, cfg.GRPC.SecretKey)

@@ -15,7 +15,7 @@ RUN go build -o /build/auth .
 
 FROM alpine:latest
 WORKDIR /app
-#COPY config/local.yaml ./config/
+COPY config/local.yaml ./config/
 # Копируем бинарный файл из предыдущего этапа
 COPY --from=builder /build/auth /app/auth
 ENV CONFIG_PATH=./config/local.yaml

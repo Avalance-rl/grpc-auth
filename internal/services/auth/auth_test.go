@@ -32,7 +32,6 @@ func TestRegisterNewUser(t *testing.T) {
 
 		// Call RegisterNewUser
 		userID, err := authService.RegisterNewUser(context.Background(), email, password)
-
 		// Assertions
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), userID)
@@ -167,31 +166,6 @@ func TestRefreshToken(t *testing.T) {
 		mockDeviceProvider.AssertExpectations(t)
 	})
 
-	// Error case: token expired
-	//t.Run("token expired", func(t *testing.T) {
-	//	expiredToken, _ := jwt.NewToken(email, -time.Minute, "secretKey", deviceAddress) // Create an expired token
-	//
-	//	// Call RefreshToken
-	//	_, err := authService.RefreshToken(context.Background(), deviceAddress, expiredToken)
-	//
-	//	// Assertions
-	//	assert.Error(t, err)
-	//	assert.Contains(t, err.Error(), "expiration")
-	//})
-
-	// Error case: invalid token
-	//t.Run("invalid token", func(t *testing.T) {
-	//	invalidToken := "invalid_token"
-	//
-	//	// Call RefreshToken
-	//	_, err := authService.RefreshToken(context.Background(), deviceAddress, invalidToken)
-	//
-	//	// Assertions
-	//	assert.Error(t, err)
-	//	assert.Contains(t, err.Error(), "invalid token")
-	//})
-
-	// Error case: address mismatch
 	t.Run("address mismatch", func(t *testing.T) {
 		wrongDeviceAddress := "wrong_device"
 

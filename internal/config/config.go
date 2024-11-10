@@ -2,16 +2,23 @@ package config
 
 import (
 	"os"
+	"sync"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+// Config структура для инициализации конфига
 type Config struct {
 	Env         string `yaml:"env" env-default:"prod"`
 	GRPC        GRPCConfig
 	StoragePath string `yaml:"storage_path" env-default:"./storage"`
 }
+
+var (
+	configInstance *Config
+	once           sync.Once // once механизм синхронизации
+)
 
 type GRPCConfig struct {
 	Port      int           `yaml:"port"`
@@ -20,7 +27,17 @@ type GRPCConfig struct {
 	SecretKey string        `yaml:"secret_key"`
 }
 
-func MustLoad() *Config {
+// GetConfig функция для получения синглтона конфига
+func GetConfig() *Config {
+	once.Do(func() {
+		configInstance = &Config{}
+		configInstance.mustLoad()
+	})
+	return configInstance
+}
+
+// mustLoad считывает конфиг файл
+func (c *Config) mustLoad() {
 	path := fetchConfigPath()
 	if path == "" {
 		panic("config file path is empty")
@@ -28,13 +45,11 @@ func MustLoad() *Config {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		panic("config file not found")
 	}
-	var cfg Config
 
-	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
+	if err := cleanenv.ReadConfig(path, configInstance); err != nil {
 		panic("failed to read config: " + err.Error())
 	}
 
-	return &cfg
 }
 
 func fetchConfigPath() string {
